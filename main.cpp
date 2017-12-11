@@ -3,16 +3,16 @@
 #include <chrono>
 #include <algorithm>
 
-#include <glm/glm.hpp>
-
 #define GLM_ENABLE_EXPERIMENTAL
-#define GLFW_INCLUDE_NONE
+#include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/ContextInfo.h>
 #include <glbinding/Version.h>
 
+
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include <globjects/globjects.h>
@@ -49,9 +49,17 @@ public:
     */
     void draw();
     void draw(gl::GLenum mode);
+    std::vector<Vertex> &vertices(){return m_vertices;}
+    std::vector<Vertex> &restVertices(){return m_restVertices;}
+    void updateVertices(){
+            m_gpuVertices->setData(m_vertices, GL_STATIC_DRAW);
+            auto vertexBinding = m_vao->binding(0);
+            vertexBinding->setBuffer(m_gpuVertices.get(), 0, sizeof(Vertex));
+    }
 
 protected:
     std::vector<Vertex> m_vertices;
+    std::vector<Vertex> m_restVertices;
     std::vector<Face> m_indices;
     gl::GLsizei m_size;
     std::unique_ptr<globjects::VertexArray> m_vao;
@@ -65,6 +73,7 @@ MiniMesh::MiniMesh(const std::vector<Vertex> &v, const std::vector<Face> &f):
     , m_gpuIndices(Buffer::create())
 {
     m_indices.insert(m_indices.begin(), f.begin(), f.end());
+    m_restVertices.insert(m_vertices.begin(), v.begin(), v.end());
     m_vertices.insert(m_vertices.begin(), v.begin(), v.end());
     
     m_gpuIndices->setData(m_indices, GL_STATIC_DRAW);
@@ -74,17 +83,20 @@ MiniMesh::MiniMesh(const std::vector<Vertex> &v, const std::vector<Face> &f):
 
     m_vao->bindElementBuffer(m_gpuIndices.get());
 
-    auto vertexBinding = m_vao->binding(0);
-    vertexBinding->setAttribute(0);
-    vertexBinding->setBuffer(m_gpuVertices.get(), 0, sizeof(Vertex));
-    vertexBinding->setFormat(3, GL_FLOAT, GL_TRUE);
-    m_vao->enable(0);
-
-    vertexBinding = m_vao->binding(1);
-    vertexBinding->setAttribute(1);
-    vertexBinding->setBuffer(m_gpuVertices.get(), offsetof(Vertex, normal), sizeof(Vertex));
-    vertexBinding->setFormat(3, GL_FLOAT, GL_TRUE);
-    m_vao->enable(1);
+    {
+        auto vertexBinding = m_vao->binding(0);
+        vertexBinding->setAttribute(0);
+        vertexBinding->setBuffer(m_gpuVertices.get(), 0, sizeof(Vertex));
+        vertexBinding->setFormat(3, GL_FLOAT, GL_FALSE);
+        m_vao->enable(0);
+    }
+    {
+        auto vertexBinding = m_vao->binding(1);
+        vertexBinding->setAttribute(1);
+        vertexBinding->setBuffer(m_gpuVertices.get(), offsetof(Vertex, normal), sizeof(Vertex));
+        vertexBinding->setFormat(3, GL_FLOAT, GL_TRUE);
+        m_vao->enable(1);
+    }
 
     m_vao->unbind();
 }
@@ -114,7 +126,8 @@ std::unique_ptr<MiniMesh> makeCylinder(vec3 base=vec3(0,0,0), vec3 axis = vec3(1
     
     for(int i=0; i<subdiv2; i++)
     {
-        float offset2 = (0.5-float(i)/float(subdiv2-1))*length;
+        float offset = float(i)/float(subdiv2-1);
+        float offset2 = (offset-0.5)*length;
         for(int j=0; j<subdiv1; j++)
         {
             float angle = 2.*glm::pi<float>()*float(j)/float(subdiv1);
@@ -183,7 +196,7 @@ void initialize()
 
     g_program = globjects::Program::create();
 
-    g_vertexShaderSource = globjects::Shader::sourceFromFile(dataPath + "./basicvert");
+    g_vertexShaderSource = globjects::Shader::sourceFromFile(dataPath + "./basic.vert");
     g_vertexShaderTemplate = globjects::Shader::applyGlobalReplacements(g_vertexShaderSource.get());
     g_vertexShader = globjects::Shader::create(GL_VERTEX_SHADER, g_vertexShaderTemplate.get());
     
@@ -231,10 +244,8 @@ void draw()
 
     const auto t_elapsed = std::chrono::high_resolution_clock::now() - g_starttime;  
     const auto t = static_cast<float>(t_elapsed.count()) * 4e-10f;
-    glm::mat4 R = glm::rotate(t * 1.f, glm::vec3(sin(t * 0.321f), cos(t * 0.234f), sin(t * 0.123f)));
 
     g_program->setUniform("transform", g_viewProjection);
-    g_program->setUniform("rotation", R);
 
     const auto level = static_cast<int>((sin(t) * 0.5f + 0.5f) * 16) + 1;
     g_program->setUniform("level", level);
