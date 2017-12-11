@@ -1,0 +1,9 @@
+[submodule "external/OpenGL/glm"]
+	path = external/OpenGL/glm
+	url = git@github.com:g-truc/glm.git
+[submodule "external/OpenGL/globjects"]
+	path = external/OpenGL/globjects
+	url = git@github.com:cginternals/globjects.git
+[submodule "external/OpenGL/glbinding"]
+	path = external/OpenGL/glbinding
+	url = git@github.com:cginternals/glbinding.git
