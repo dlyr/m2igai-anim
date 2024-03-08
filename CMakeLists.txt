@@ -78,12 +78,6 @@ endif(MSVC OR MSVC_IDE)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-#   SUBMODULES : glbinding, ....
-include(SubModules)
-include_directories("${GLBINDING_INCLUDE_DIR}" "${GLOBJECTS_INCLUDE_DIR}" "${GLM_INCLUDE_DIR}"   ${GLFW_INCLUDE_DIR}
-)
-
-# ----------------------------------------------------------------------------------------------------------------------
 #   Main Libraries
 
 ################################################################################
@@ -109,22 +103,16 @@ endif()
 set(app_target main-app)
 
 find_package(OpenGL     REQUIRED)
-find_package(GLFW  REQUIRED)
+find_package(glfw3 3.3 REQUIRED)
+find_package(glm  REQUIRED)
+find_package(glbinding  REQUIRED)
+find_package(globjects  REQUIRED)
  
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-set(app_libs
-  ${OPENGL_LIBRARIES}
-  ${GLBINDING_LIBRARIES}
-  ${GLOBJECTS_LIBRARIES}
-  ${GLM_LIBRARIES}
-   ${GLFW_LIBRARY}
-    )
 
 file(GLOB app_sources *.cpp)
 file(GLOB app_headers *.h *.hpp)
 file(GLOB app_inlines *.inl)
-file(GLOB app_uis     *.ui)
 
 add_executable(
     ${app_target}
@@ -135,9 +123,11 @@ add_executable(
 
 target_link_libraries(
     ${app_target}
-    ${app_libs}
+    PUBLIC
+    glfw   globjects::globjects
     )
-add_dependencies( ${app_target} glbinding_lib globjects_lib glm_lib main-assets)
+
+    add_dependencies( ${app_target} main-assets)
 
 
 
