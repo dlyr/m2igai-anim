@@ -27,8 +27,6 @@ This will install the dependencies in m2igai-anim/external/Bundle-GNU (or simila
 ## Then build the main project
 
 go back to m2igai-anim
-cmake -S . -B build
-
 ```{.sh}
 cd ../
 ```
@@ -37,7 +35,7 @@ and build with the external install dir specified
 
 ```{.sh}
 cmake -S . -B build  -DCMAKE_PREFIX_PATH=external/Bundle-GNU/
-cmake --build build -j ./
+cmake --build build -j
 ```
 
 run `main-app` from install dir (e.g. `m2igai-anim/Bundle-GNU/Debug/`)
